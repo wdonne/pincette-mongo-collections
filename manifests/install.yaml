@@ -1,0 +1,303 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mongo-collections
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: mongocollections.pincette.net
+spec:
+  group: pincette.net
+  names:
+    kind: MongoCollection
+    plural: mongocollections
+    singular: mongocollection
+  scope: Namespaced
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                capped:
+                  type: boolean
+                changeStreamPreAndPostImages:
+                  type: boolean
+                clustered:
+                  type: boolean
+                collation:
+                  properties:
+                    alternate:
+                      type: string
+                    backwards:
+                      type: boolean
+                    caseFirst:
+                      type: string
+                    caseLevel:
+                      type: boolean
+                    locale:
+                      type: string
+                    maxVariable:
+                      type: string
+                    normalization:
+                      type: boolean
+                    numericOrdering:
+                      type: boolean
+                    strength:
+                      type: integer
+                  required:
+                    - locale
+                  type: object
+                encryptedFields:
+                  properties:
+                    fields:
+                      items:
+                        properties:
+                          bsonType:
+                            type: string
+                          keyId:
+                            type: string
+                          path:
+                            type: string
+                          queries:
+                            items:
+                              additionalProperties:
+                                enum:
+                                  - equality
+                                  - none
+                                type: string
+                              type: object
+                            type: array
+                        required:
+                          - bsonType
+                          - keyId
+                          - path
+                        type: object
+                      type: array
+                    queryPatterns:
+                      items:
+                        additionalProperties:
+                          enum:
+                            - equality
+                            - none
+                          type: string
+                        type: object
+                      type: array
+                  type: object
+                expireAfterSeconds:
+                  type: integer
+                indexes:
+                  items:
+                    properties:
+                      keys:
+                        additionalProperties:
+                          type: integer
+                        type: object
+                      options:
+                        properties:
+                          bits:
+                            type: integer
+                          collation:
+                            properties:
+                              alternate:
+                                type: string
+                              backwards:
+                                type: boolean
+                              caseFirst:
+                                type: string
+                              caseLevel:
+                                type: boolean
+                              locale:
+                                type: string
+                              maxVariable:
+                                type: string
+                              normalization:
+                                type: boolean
+                              numericOrdering:
+                                type: boolean
+                              strength:
+                                type: integer
+                            required:
+                              - locale
+                            type: object
+                          defaultLanguage:
+                            type: string
+                          expireAfterSeconds:
+                            type: integer
+                          hidden:
+                            type: boolean
+                          languageOverride:
+                            type: string
+                          max:
+                            type: number
+                          min:
+                            type: number
+                          name:
+                            type: string
+                          partialFilterExpression:
+                            additionalProperties:
+                              type: object
+                            type: object
+                          sparse:
+                            type: boolean
+                          sphereIndexVersion:
+                            type: integer
+                          textIndexVersion:
+                            type: integer
+                          unique:
+                            type: boolean
+                          weights:
+                            additionalProperties:
+                              type: integer
+                            type: object
+                          wildcardProjection:
+                            additionalProperties:
+                              type: integer
+                            type: object
+                        type: object
+                    required:
+                      - keys
+                    type: object
+                  type: array
+                max:
+                  type: integer
+                name:
+                  type: string
+                size:
+                  type: integer
+                timeSeries:
+                  properties:
+                    granularity:
+                      enum:
+                        - hours
+                        - minutes
+                        - seconds
+                      type: string
+                    metaField:
+                      type: string
+                    timeField:
+                      type: string
+                  required:
+                    - timeField
+                  type: object
+                validator:
+                  additionalProperties:
+                    type: object
+                  type: object
+                validationAction:
+                  enum:
+                    - error
+                    - warn
+                  type: string
+                validationLevel:
+                  enum:
+                    - moderate
+                    - "off"
+                    - strict
+                  type: string
+              required:
+                - name
+              type: object
+            status:
+              properties:
+                error:
+                  type: string
+                phase:
+                  enum:
+                    - Pending
+                    - Ready
+                  type: string
+              required:
+                - phase
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mongo-collections-controller
+  labels:
+    app.kubernetes.io/component: mongo-collections-controller
+    app.kubernetes.io/name: mongo-collections-controller
+rules:
+  - apiGroups:
+      - pincette.net
+    resources:
+      - mongocollections
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - pincette.net
+    resources:
+      - mongocollections/status
+    verbs:
+      - patch
+      - update
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mongo-collections-controller
+  namespace: mongo-collections
+  labels:
+    app.kubernetes.io/component: mongo-collections-controller
+    app.kubernetes.io/name: mongo-collections-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mongo-collections-controller
+  labels:
+    app.kubernetes.io/component: mongo-collections-controller
+    app.kubernetes.io/name: mongo-collections-controller
+subjects:
+  - kind: ServiceAccount
+    name: mongo-collections-controller
+    namespace: mongo-collections
+roleRef:
+  name: mongo-collections-controller
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-collections-controller
+  namespace: mongo-collections
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      apps.kubernetes.io/name: mongo-collections-controller
+  template:
+    metadata:
+      labels:
+        apps.kubernetes.io/name: mongo-collections-controller
+    spec:
+      containers:
+        - name: mongo-collections-controller
+          image: wdonne/pincette-mongo-collections:latest
+          resources: { }
+          volumeMounts:
+            - mountPath: /conf
+              name: config
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      serviceAccountName: mongo-collections-controller
+      volumes:
+        - name: config
+          secret:
+            secretName: config
