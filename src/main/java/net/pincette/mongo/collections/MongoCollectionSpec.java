@@ -35,10 +35,6 @@ public class MongoCollectionSpec {
   @JsonProperty("max")
   public long max = -1;
 
-  @JsonProperty("name")
-  @Required
-  public String name;
-
   @JsonProperty("size")
   public long size = -1;
 
@@ -155,7 +151,7 @@ public class MongoCollectionSpec {
   public static class Index {
     @JsonProperty("keys")
     @Required
-    public Map<String, Integer> keys;
+    public List<Key> keys;
 
     @JsonProperty("options")
     public Options options = new Options();
@@ -172,6 +168,28 @@ public class MongoCollectionSpec {
     @Override
     public int hashCode() {
       return hash(keys, options);
+    }
+
+    public static class Key {
+      @JsonProperty("direction")
+      public int direction;
+
+      @JsonProperty("field")
+      public String field;
+
+      @Override
+      public boolean equals(final Object obj) {
+        return ofNullable(obj)
+            .filter(Key.class::isInstance)
+            .map(Key.class::cast)
+            .filter(k -> direction == k.direction && Objects.equals(field, k.field))
+            .isPresent();
+      }
+
+      @Override
+      public int hashCode() {
+        return hash(direction, field);
+      }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

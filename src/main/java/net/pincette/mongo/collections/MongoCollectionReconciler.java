@@ -1,6 +1,9 @@
 package net.pincette.mongo.collections;
 
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Indexes.ascending;
+import static com.mongodb.client.model.Indexes.compoundIndex;
+import static com.mongodb.client.model.Indexes.descending;
 import static com.typesafe.config.ConfigFactory.defaultOverrides;
 import static io.javaoperatorsdk.operator.api.reconciler.EventSourceInitializer.generateNameFor;
 import static io.javaoperatorsdk.operator.api.reconciler.UpdateControl.patchStatus;
@@ -13,7 +16,9 @@ import static java.util.stream.Collectors.toList;
 import static net.pincette.jes.util.Configuration.loadDefault;
 import static net.pincette.json.Jackson.from;
 import static net.pincette.json.Jackson.to;
+import static net.pincette.json.JsonUtil.createArrayBuilder;
 import static net.pincette.json.JsonUtil.createObjectBuilder;
+import static net.pincette.json.JsonUtil.createValue;
 import static net.pincette.mongo.BsonUtil.fromJsonNew;
 import static net.pincette.mongo.collections.MongoCollectionSpec.Collation.defaultCollation;
 import static net.pincette.util.Collections.map;
@@ -52,8 +57,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
 import net.pincette.mongo.BsonUtil;
 import net.pincette.mongo.collections.MongoCollectionSpec.Index;
+import net.pincette.mongo.collections.MongoCollectionSpec.Index.Key;
 import net.pincette.mongo.collections.MongoCollectionSpec.Index.Options;
 import net.pincette.mongo.collections.MongoCollectionSpec.TimeSeries;
 import net.pincette.util.ImmutableBuilder;
@@ -68,6 +75,9 @@ public class MongoCollectionReconciler
   private static final ClusteredIndexOptions CLUSTERED_INDEX_OPTIONS =
       new ClusteredIndexOptions(eq("_id", 1), true);
   private static final String CLUSTERED_NAME = "_id_";
+  private static final String DIRECTION = "direction";
+  private static final String FIELD = "field";
+  private static final String KEY = "key";
   private static final Logger LOGGER = getLogger("net.pincette.mongo.collections");
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -95,18 +105,31 @@ public class MongoCollectionReconciler
   }
 
   private static com.mongodb.client.MongoCollection<Document> create(
-      final MongoCollectionSpec spec, final MongoDatabase database) {
-    LOGGER.info(() -> "Create collection " + spec.name);
-    database.createCollection(spec.name, createOptions(spec));
+      final String name, final MongoCollectionSpec spec, final MongoDatabase database) {
+    LOGGER.info(() -> "Create collection " + name);
+    database.createCollection(name, createOptions(spec));
 
-    return database.getCollection(spec.name);
+    return database.getCollection(name);
   }
 
   private static void createIndex(
       final com.mongodb.client.MongoCollection<Document> collection, final Index index) {
-    final String name = collection.createIndex(toBson(index.keys), indexOptions(index.options));
+    final String name = collection.createIndex(indexes(index.keys), indexOptions(index.options));
 
     LOGGER.info(() -> "Created index " + name);
+  }
+
+  private static JsonValue createKeys(final Document key) {
+    return key.entrySet().stream()
+        .reduce(
+            createArrayBuilder(),
+            (b, e) ->
+                b.add(
+                    createObjectBuilder()
+                        .add(FIELD, e.getKey())
+                        .add(DIRECTION, createValue(e.getValue()))),
+            (b1, b2) -> b1)
+        .build();
   }
 
   private static CreateCollectionOptions createOptions(final MongoCollectionSpec spec) {
@@ -145,11 +168,15 @@ public class MongoCollectionReconciler
     return stream(database.listCollectionNames().iterator()).anyMatch(n -> n.equals(collection));
   }
 
-  private static <T> T fromBson(final Bson bson, final Class<T> c) {
+  private static Index fromBson(final Document bson) {
     return tryToGetRethrow(
             () ->
                 MAPPER.treeToValue(
-                    from(rearrangeProperties(BsonUtil.fromBson(bson.toBsonDocument()))), c))
+                    from(
+                        rearrangeProperties(
+                            BsonUtil.fromBson(bson.toBsonDocument()),
+                            createKeys(bson.get(KEY, Document.class)))),
+                    Index.class))
         .orElse(null);
   }
 
@@ -190,20 +217,29 @@ public class MongoCollectionReconciler
   static List<Index> indexes(
       final com.mongodb.client.MongoCollection<Document> collection, final String locale) {
     return stream(collection.listIndexes().iterator())
-        .map(i -> fromBson(i, Index.class))
-        .filter(i -> !CLUSTERED_NAME.equals(i.options.name))
+        .filter(i -> !CLUSTERED_NAME.equals(i.getString("name")))
         // This index is implicit, not controlled.
+        .map(MongoCollectionReconciler::fromBson)
         .map(i -> removeDefaultCollation(i, locale))
         .collect(toList());
+  }
+
+  private static Bson indexes(final List<Key> keys) {
+    final List<Bson> indexes =
+        keys.stream()
+            .map(k -> k.direction == 1 ? ascending(k.field) : descending(k.field))
+            .collect(toList());
+
+    return indexes.size() == 1 ? indexes.get(0) : compoundIndex(indexes);
   }
 
   static String locale(final MongoCollectionSpec spec) {
     return ofNullable(spec.collation).map(c -> c.locale).orElse(null);
   }
 
-  private static JsonObject rearrangeProperties(final JsonObject index) {
+  private static JsonObject rearrangeProperties(final JsonObject index, final JsonValue keys) {
     return createObjectBuilder()
-        .add("keys", index.getJsonObject("key"))
+        .add("keys", keys)
         .add(
             "options",
             index.entrySet().stream()
@@ -215,9 +251,10 @@ public class MongoCollectionReconciler
         .build();
   }
 
-  private static void reconcile(final MongoCollectionSpec spec, final MongoDatabase database) {
+  private static void reconcile(
+      final String name, final MongoCollectionSpec spec, final MongoDatabase database) {
     reconcileIndexes(
-        exists(database, spec.name) ? database.getCollection(spec.name) : create(spec, database),
+        exists(database, name) ? database.getCollection(name) : create(name, spec, database),
         spec.indexes,
         locale(spec));
   }
@@ -299,7 +336,10 @@ public class MongoCollectionReconciler
     return tryToGetWith(
             () -> MongoClients.create(config.first),
             client -> {
-              reconcile(resource.getSpec(), client.getDatabase(config.second));
+              reconcile(
+                  resource.getMetadata().getName(),
+                  resource.getSpec(),
+                  client.getDatabase(config.second));
               timerEventSource.scheduleOnce(resource, 60000);
               resource.setStatus(new MongoCollectionStatus());
 

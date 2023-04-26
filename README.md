@@ -27,8 +27,6 @@ spec:
       options:        
         sparse: true
         unique: true      
-status:
-  phase: Ready
 ```
 
 The collection properties are described at [https://www.mongodb.com/docs/v6.0/reference/method/db.createCollection/](https://www.mongodb.com/docs/v6.0/reference/method/db.createCollection/). The unspoorted properties are `indexOptionDefaults`, `pipeline`, `storageEngine`, `viewOn` and `writeConcern`. The property `clusteredIndex` was change to the boolean property `clustered`.
@@ -43,7 +41,7 @@ Install the operator as follows:
 kubectl apply -f https://github.com/wdonne/pincette-mongo-collections/raw/main/manifests/install.yaml
 ```
 
-You need to provide a `Secret` like this:
+You need to provide a `Secret` in the `mongo-collections` namespace with the name `config` like this:
 
 ```
 apiVersion: v1
@@ -58,3 +56,5 @@ data:
 ```
 
 The syntax is [Lightbend Config](https://github.com/lightbend/config). If the URI is private to the cluster and without credentials, then you could kustomize the `Deployment` resource to mount a `ConfigMap` instead. You could also mount both and use an `include` statement to include the secret in the config, for example.
+
+The user should be able to create the database if it doesn't exist yet and create and drop collections and indexes.

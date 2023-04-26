@@ -15,7 +15,6 @@ import static net.pincette.operator.testutil.Util.createOrReplaceAndWait;
 import static net.pincette.operator.testutil.Util.deleteNamespace;
 import static net.pincette.util.Collections.concat;
 import static net.pincette.util.Collections.list;
-import static net.pincette.util.Collections.map;
 import static net.pincette.util.Pair.pair;
 import static net.pincette.util.StreamUtil.stream;
 import static net.pincette.util.Util.waitFor;
@@ -37,8 +36,10 @@ import java.util.List;
 import java.util.Set;
 import net.pincette.mongo.collections.MongoCollectionSpec.Collation;
 import net.pincette.mongo.collections.MongoCollectionSpec.Index;
+import net.pincette.mongo.collections.MongoCollectionSpec.Index.Key;
 import net.pincette.mongo.collections.MongoCollectionSpec.Index.Options;
 import net.pincette.operator.testutil.Util;
+import net.pincette.util.Pair;
 import org.bson.Document;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -108,7 +109,6 @@ class TestMongoCollections {
     final Index index = new Index();
     final MongoCollectionSpec spec = new MongoCollectionSpec();
 
-    spec.name = COLLECTION;
     spec.capped = false;
     spec.clustered = true;
     spec.expireAfterSeconds = 200000;
@@ -116,7 +116,7 @@ class TestMongoCollections {
 
     index.options = new Options();
     index.options.name = "test";
-    index.keys = map(pair("test", 1));
+    index.keys = keys(list(pair("test", 1)));
     index.options.collation = collation;
     index.options.sparse = false;
     index.options.hidden = false;
@@ -147,6 +147,20 @@ class TestMongoCollections {
     DATABASE
         .getCollection(COLLECTION)
         .insertMany(list(new Document("test", "v1"), new Document("test", "v2")));
+  }
+
+  private static List<Key> keys(final List<Pair<String, Integer>> pairs) {
+    return pairs.stream()
+        .map(
+            p -> {
+              final Key key = new Key();
+
+              key.field = p.first;
+              key.direction = p.second;
+
+              return key;
+            })
+        .collect(toList());
   }
 
   private static void loadCustomResource() {
@@ -190,9 +204,7 @@ class TestMongoCollections {
     dropCollection();
   }
 
-  @Test
-  @DisplayName("add and remove index")
-  void addAndRemoveIndex() {
+  void addAndRemoveIndex(final List<Pair<String, Integer>> keys) {
     final MongoCollectionSpec spec = createCollectionSpec(createCollation(1));
 
     createCollection(createCollection(spec));
@@ -201,13 +213,25 @@ class TestMongoCollections {
     final List<Index> currentIndexes = spec.indexes;
     final Index index = new Index();
 
-    index.keys = map(pair("test2", -1));
+    index.keys = keys(keys);
     spec.indexes = concat(currentIndexes, list(index));
     createCollection(createCollection(spec));
     assertTrue(waitForCollection(spec));
     spec.indexes = currentIndexes;
     createCollection(createCollection(spec));
     assertTrue(waitForCollection(spec));
+  }
+
+  @Test
+  @DisplayName("add and remove index one key")
+  void addAndRemoveIndex1() {
+    addAndRemoveIndex(list(pair("test2", -1)));
+  }
+
+  @Test
+  @DisplayName("add and remove index two keys")
+  void addAndRemoveIndex2() {
+    addAndRemoveIndex(list(pair("test2", -1), pair("test3", 1)));
   }
 
   @BeforeEach
