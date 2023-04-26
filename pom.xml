@@ -20,7 +20,8 @@
   <scm>
     <url>https://github.com/wdonne/pincette-mongo-collections</url>
     <connection>scm:git@github.com:wdonne/pincette-mongo-collections.git</connection>
-    <developerConnection>scm:git@github.com:wdonne/pincette-mongo-collections.git</developerConnection>
+    <developerConnection>scm:git@github.com:wdonne/pincette-mongo-collections.git
+    </developerConnection>
   </scm>
 
   <developers>
@@ -170,13 +171,8 @@
             <mainClass>net.pincette.mongo.collections.Application</mainClass>
             <workingDirectory>/</workingDirectory>
             <jvmFlags>
-              <jvmFlag>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:8000
-              </jvmFlag>
               <jvmFlag>-Dconfig.file=/conf/application.conf</jvmFlag>
             </jvmFlags>
-            <ports>
-              <port>8000</port>
-            </ports>
           </container>
         </configuration>
       </plugin>

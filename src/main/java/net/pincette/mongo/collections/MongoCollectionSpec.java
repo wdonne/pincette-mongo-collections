@@ -172,9 +172,11 @@ public class MongoCollectionSpec {
 
     public static class Key {
       @JsonProperty("direction")
+      @Required
       public int direction;
 
       @JsonProperty("field")
+      @Required
       public String field;
 
       @Override

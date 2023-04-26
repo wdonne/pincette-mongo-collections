@@ -99,6 +99,9 @@ spec:
                               type: integer
                             field:
                               type: string
+                          required:
+                            - direction
+                            - field
                           type: object
                         type: array
                       options:
@@ -291,6 +294,7 @@ spec:
       containers:
         - name: mongo-collections-controller
           image: wdonne/pincette-mongo-collections:latest
+          imagePullPolicy: Always
           resources: { }
           volumeMounts:
             - mountPath: /conf

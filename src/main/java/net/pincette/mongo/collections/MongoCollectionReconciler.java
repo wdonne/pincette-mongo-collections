@@ -268,7 +268,8 @@ public class MongoCollectionReconciler
     found.stream()
         .filter(i -> !indexes.contains(i))
         .forEach(i -> dropIndex(collection, i.options.name));
-    indexes.stream()
+    ofNullable(indexes).stream()
+        .flatMap(List::stream)
         .map(i -> removeDefaultCollation(i, locale))
         .filter(i -> !found.contains(i))
         .forEach(i -> createIndex(collection, i));

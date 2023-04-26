@@ -9,7 +9,6 @@ metadata:
   name: test-collection
   namespace: test-mongo-collections
 spec:
-  name: test-collection
   clustered: true  
   collation:
     locale: "en"
@@ -17,17 +16,22 @@ spec:
     caseLevel: true
   indexes:
     - keys:
-        field1: 1
-        field2: -1
+        - field: field1
+          direction: 1
+        - field: field2
+          direction: -1
       options:        
         name: myindex1
         expireAfterSeconds: 20
     - keys:
-        field3: 1
+        -field: field3
+         direction: 1
       options:        
         sparse: true
         unique: true      
 ```
+
+The `spec` field has no mandatory fields.
 
 The collection properties are described at [https://www.mongodb.com/docs/v6.0/reference/method/db.createCollection/](https://www.mongodb.com/docs/v6.0/reference/method/db.createCollection/). The unspoorted properties are `indexOptionDefaults`, `pipeline`, `storageEngine`, `viewOn` and `writeConcern`. The property `clusteredIndex` was change to the boolean property `clustered`.
 
