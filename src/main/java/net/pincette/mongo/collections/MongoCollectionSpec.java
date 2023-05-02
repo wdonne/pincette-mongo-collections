@@ -35,6 +35,9 @@ public class MongoCollectionSpec {
   @JsonProperty("max")
   public long max = -1;
 
+  @JsonProperty("name")
+  public String name;
+
   @JsonProperty("size")
   public long size = -1;
 

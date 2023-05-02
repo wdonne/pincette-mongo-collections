@@ -172,6 +172,8 @@ spec:
                   type: array
                 max:
                   type: integer
+                name:
+                  type: string
                 size:
                   type: integer
                 timeSeries:

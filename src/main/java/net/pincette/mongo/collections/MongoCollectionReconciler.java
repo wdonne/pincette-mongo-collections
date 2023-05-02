@@ -237,6 +237,10 @@ public class MongoCollectionReconciler
     return ofNullable(spec.collation).map(c -> c.locale).orElse(null);
   }
 
+  private static String name(final MongoCollection resource) {
+    return ofNullable(resource.getSpec().name).orElseGet(() -> resource.getMetadata().getName());
+  }
+
   private static JsonObject rearrangeProperties(final JsonObject index, final JsonValue keys) {
     return createObjectBuilder()
         .add("keys", keys)
@@ -337,10 +341,7 @@ public class MongoCollectionReconciler
     return tryToGetWith(
             () -> MongoClients.create(config.first),
             client -> {
-              reconcile(
-                  resource.getMetadata().getName(),
-                  resource.getSpec(),
-                  client.getDatabase(config.second));
+              reconcile(name(resource), resource.getSpec(), client.getDatabase(config.second));
               timerEventSource.scheduleOnce(resource, 60000);
               resource.setStatus(new MongoCollectionStatus());
 
