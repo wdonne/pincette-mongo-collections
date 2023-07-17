@@ -301,8 +301,6 @@ spec:
           volumeMounts:
             - mountPath: /conf
               name: config
-      nodeSelector:
-        kubernetes.io/arch: arm64
       serviceAccountName: mongo-collections-controller
       volumes:
         - name: config

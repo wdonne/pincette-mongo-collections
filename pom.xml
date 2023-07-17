@@ -7,7 +7,7 @@
   <groupId>net.pincette</groupId>
   <artifactId>pincette-mongo-collections</artifactId>
   <packaging>jar</packaging>
-  <version>1.0</version>
+  <version>1.0.1</version>
   <name>pincette-mongo-collections</name>
   <description>A Kubernetes operator that can manage MongoDB collections</description>
   <url>https://github.com/wdonne/pincette-mongo-collections</url>
@@ -53,42 +53,47 @@
     <dependency>
       <groupId>net.pincette</groupId>
       <artifactId>pincette-common</artifactId>
-      <version>2.3.1</version>
+      <version>2.3.3</version>
     </dependency>
     <dependency>
       <groupId>net.pincette</groupId>
       <artifactId>pincette-json</artifactId>
-      <version>2.0.8</version>
+      <version>2.1</version>
     </dependency>
     <dependency>
       <groupId>net.pincette</groupId>
       <artifactId>pincette-jes-util</artifactId>
-      <version>3.1.2</version>
+      <version>3.1.5</version>
+    </dependency>
+    <dependency>
+      <groupId>net.pincette</groupId>
+      <artifactId>pincette-operator-util</artifactId>
+      <version>1.0</version>
     </dependency>
     <dependency>
       <groupId>io.javaoperatorsdk</groupId>
       <artifactId>operator-framework</artifactId>
-      <version>4.2.8</version>
+      <version>4.4.0</version>
     </dependency>
     <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongodb-driver-sync</artifactId>
-      <version>4.9.1</version>
+      <version>4.10.2</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-jdk14</artifactId>
-      <version>2.0.6</version>
+      <version>2.0.7</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>2.0.6</version>
+      <version>2.0.7</version>
     </dependency>
     <dependency>
       <groupId>io.fabric8</groupId>
       <artifactId>crd-generator-apt</artifactId>
-      <version>6.2.0</version>
+      <version>6.7.2</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -99,7 +104,7 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.9.2</version>
+      <version>5.9.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -143,7 +148,7 @@
       <plugin>
         <groupId>com.google.cloud.tools</groupId>
         <artifactId>jib-maven-plugin</artifactId>
-        <version>3.3.1</version>
+        <version>3.3.2</version>
         <configuration>
           <from>
             <image>
@@ -203,7 +208,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.2</version>
         <configuration>
           <forkCount>0</forkCount>
         </configuration>
@@ -211,7 +216,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.2</version>
       </plugin>
     </plugins>
   </build>

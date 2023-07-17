@@ -178,7 +178,7 @@ class TestMongoCollections {
   }
 
   private static void startOperator() {
-    final Operator operator = new Operator(CLIENT);
+    final Operator operator = new Operator(overrider -> overrider.withKubernetesClient(CLIENT));
 
     operator.register(new MongoCollectionReconciler());
     operator.start();

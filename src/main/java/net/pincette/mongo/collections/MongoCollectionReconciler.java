@@ -63,6 +63,8 @@ import net.pincette.mongo.collections.MongoCollectionSpec.Index;
 import net.pincette.mongo.collections.MongoCollectionSpec.Index.Key;
 import net.pincette.mongo.collections.MongoCollectionSpec.Index.Options;
 import net.pincette.mongo.collections.MongoCollectionSpec.TimeSeries;
+import net.pincette.operator.util.Status;
+import net.pincette.operator.util.Status.Condition;
 import net.pincette.util.ImmutableBuilder;
 import net.pincette.util.Pair;
 import org.bson.Document;
@@ -294,6 +296,10 @@ public class MongoCollectionReconciler
     return index;
   }
 
+  private static Status status(final MongoCollection resource) {
+    return ofNullable(resource.getStatus()).orElseGet(Status::new);
+  }
+
   private static TimeSeriesOptions timeSeriesOptions(final TimeSeries timeSeries) {
     return ImmutableBuilder.create(() -> new TimeSeriesOptions(timeSeries.timeField))
         .updateIf(
@@ -322,7 +328,7 @@ public class MongoCollectionReconciler
   private UpdateControl<MongoCollection> error(final MongoCollection resource, final Throwable t) {
     LOGGER.log(SEVERE, t, t::getMessage);
     timerEventSource.scheduleOnce(resource, 5000);
-    resource.setStatus(new MongoCollectionStatus(t.getMessage()));
+    resource.setStatus(status(resource).withException(t));
 
     return patchStatus(resource);
   }
@@ -343,7 +349,7 @@ public class MongoCollectionReconciler
             client -> {
               reconcile(name(resource), resource.getSpec(), client.getDatabase(config.second));
               timerEventSource.scheduleOnce(resource, 60000);
-              resource.setStatus(new MongoCollectionStatus());
+              resource.setStatus(status(resource).withCondition(new Condition()));
 
               return patchStatus(resource);
             },
