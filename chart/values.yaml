@@ -1,0 +1,39 @@
+# The command arguments for the controller pod.
+args: [ ]
+
+# The command for the controller pod.
+command: [ ]
+
+# The image pull policy for the controller pod.
+imagePullPolicy: IfNotPresent
+
+# The ports for the controller pod.
+ports: [ ]
+
+# The node selector for the controller pod.
+nodeSelector: { }
+
+# The resources for the controller pod.
+resources: { }
+
+# The security context for the controller pod.
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  seccompProfile:
+    type: RuntimeDefault
+  runAsNonRoot: true
+
+volumes:
+  - name: config
+    secret:
+      secretName: config
+
+volumeMounts:
+  - mountPath: /conf
+    name: config
+
+# The namespaces the controller should watch. By default, all namespaces are watched.
+watchNamespaces: []

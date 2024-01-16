@@ -1,0 +1,15 @@
+apiVersion: v2
+appVersion: 1.1
+description: The MongoDB Collections Operator
+home: https://github.com/wdonne/pincette-mongo-collections
+keywords:
+  - mongodb
+  - collection
+maintainers:
+  - name: Werner Donné
+    email: werner.donne@pincette.net
+    url: https://github.com/wdonne
+name: mongo-collections
+sources:
+  - https://github.com/wdonne/pincette-mongo-collections
+version: 1.1.0

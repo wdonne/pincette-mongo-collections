@@ -12,7 +12,6 @@ import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.SEVERE;
 import static java.util.logging.Logger.getLogger;
-import static java.util.stream.Collectors.toList;
 import static net.pincette.jes.util.Configuration.loadDefault;
 import static net.pincette.json.Jackson.from;
 import static net.pincette.json.Jackson.to;
@@ -21,6 +20,7 @@ import static net.pincette.json.JsonUtil.createObjectBuilder;
 import static net.pincette.json.JsonUtil.createValue;
 import static net.pincette.mongo.BsonUtil.fromJsonNew;
 import static net.pincette.mongo.collections.MongoCollectionSpec.Collation.defaultCollation;
+import static net.pincette.operator.util.Util.replyUpdateIfExists;
 import static net.pincette.util.Collections.map;
 import static net.pincette.util.Pair.pair;
 import static net.pincette.util.StreamUtil.stream;
@@ -223,14 +223,14 @@ public class MongoCollectionReconciler
         // This index is implicit, not controlled.
         .map(MongoCollectionReconciler::fromBson)
         .map(i -> removeDefaultCollation(i, locale))
-        .collect(toList());
+        .toList();
   }
 
   private static Bson indexes(final List<Key> keys) {
     final List<Bson> indexes =
         keys.stream()
             .map(k -> k.direction == 1 ? ascending(k.field) : descending(k.field))
-            .collect(toList());
+            .toList();
 
     return indexes.size() == 1 ? indexes.get(0) : compoundIndex(indexes);
   }
@@ -346,14 +346,14 @@ public class MongoCollectionReconciler
 
     return tryToGetWith(
             () -> MongoClients.create(config.first),
-            client -> {
-              reconcile(name(resource), resource.getSpec(), client.getDatabase(config.second));
+            mongoClient -> {
+              reconcile(name(resource), resource.getSpec(), mongoClient.getDatabase(config.second));
               timerEventSource.scheduleOnce(resource, 60000);
               resource.setStatus(status(resource).withCondition(new Condition()));
 
-              return patchStatus(resource);
+              return replyUpdateIfExists(context.getClient(), resource);
             },
             e -> error(resource, e))
-        .orElse(null);
+        .orElseGet(UpdateControl::noUpdate);
   }
 }

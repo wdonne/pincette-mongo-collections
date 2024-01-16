@@ -1,0 +1,18 @@
+{{- if not .Values.watchNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mongo-collections-controller
+  labels:
+    app.kubernetes.io/component: mongo-collections-controller
+    app.kubernetes.io/name: mongo-collections-controller
+subjects:
+  - kind: ServiceAccount
+    name: mongo-collections-controller
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  name: mongo-collections-controller
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+{{- end }}

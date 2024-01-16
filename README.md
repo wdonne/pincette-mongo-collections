@@ -1,8 +1,8 @@
 # The MongoDB Collections Operator
 
-With this Kubernetes operator you can manage MongoDB collections. The `MongoCollection` custom resource describes a MongoDB collection. It will create the collection if it doesn't exist. The provides properties are used for the creation, but they are not reconciled after that. The indexes are always reconciled, which means indexes may be dropped and recreated when they have been changed in any other way. When a custom resource is deleted, the MongoDB collection will not be deleted. A resource looks like this:
+With this Kubernetes operator you can manage MongoDB collections. The `MongoCollection` custom resource describes a MongoDB collection. It will create the collection if it doesn't exist. The provided properties are used for the creation, but they are not reconciled after that. The indexes are always reconciled, which means indexes may be dropped and recreated when they have been changed in any other way. When a custom resource is deleted, the MongoDB collection will not be deleted. A resource looks like this:
 
-```
+```yaml
 apiVersion: pincette.net/v1
 kind: MongoCollection
 metadata:
@@ -41,24 +41,26 @@ The index properties are described at [https://www.mongodb.com/docs/v6.0/referen
 
 Install the operator as follows:
 
-```
-kubectl apply -f https://github.com/wdonne/pincette-mongo-collections/raw/main/manifests/install.yaml
+```bash
+helm repo add pincette https://pincette.net/charts
+helm repo update
+helm install mongo-collections pincette/mongo-collections --namespace mongo-collections --create-namespace
 ```
 
-You need to provide a `Secret` in the `mongo-collections` namespace with the name `config` like this:
+The default chart values expect you to provide a `Secret` in the `mongo-collections` namespace (or the one you have chosen) with the name `config` like this:
 
-```
+```yaml
 apiVersion: v1
 kind: Secret
 metadata:
   namespace: mongo-collections
   name: config
-data:
+stringData:
   application.conf: |
     uri = "mongodb://username:password@localhost:27017"
     database = mydatabase    
 ```
 
-The syntax is [Lightbend Config](https://github.com/lightbend/config). If the URI is private to the cluster and without credentials, then you could kustomize the `Deployment` resource to mount a `ConfigMap` instead. You could also mount both and use an `include` statement to include the secret in the config, for example.
+The syntax is [Lightbend Config](https://github.com/lightbend/config). If your configuration has partly secret information and partly non-secret information, then you can load both a secret and a config map. Then you can include one in the other with a Lightbend include statement. The default command in the container image expects to find the result in `/conf/application.conf`, but you can change this in the values file.
 
 The user should be able to create the database if it doesn't exist yet and create and drop collections and indexes.
