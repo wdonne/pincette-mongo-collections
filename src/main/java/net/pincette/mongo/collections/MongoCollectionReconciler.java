@@ -11,7 +11,6 @@ import static java.lang.Integer.MAX_VALUE;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.logging.Level.SEVERE;
-import static java.util.logging.Logger.getLogger;
 import static net.pincette.jes.util.Configuration.loadDefault;
 import static net.pincette.json.Jackson.from;
 import static net.pincette.json.Jackson.to;
@@ -19,16 +18,18 @@ import static net.pincette.json.JsonUtil.createArrayBuilder;
 import static net.pincette.json.JsonUtil.createObjectBuilder;
 import static net.pincette.json.JsonUtil.createValue;
 import static net.pincette.mongo.BsonUtil.fromJsonNew;
+import static net.pincette.mongo.collections.Application.LOGGER;
 import static net.pincette.mongo.collections.MongoCollectionSpec.Collation.defaultCollation;
 import static net.pincette.operator.util.Util.replyUpdateIfExists;
 import static net.pincette.util.Collections.map;
 import static net.pincette.util.Pair.pair;
 import static net.pincette.util.StreamUtil.stream;
+import static net.pincette.util.Util.tryToGet;
 import static net.pincette.util.Util.tryToGetRethrow;
-import static net.pincette.util.Util.tryToGetWith;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.ChangeStreamPreAndPostImagesOptions;
@@ -53,9 +54,9 @@ import io.javaoperatorsdk.operator.api.reconciler.UpdateControl;
 import io.javaoperatorsdk.operator.processing.event.source.EventSource;
 import io.javaoperatorsdk.operator.processing.event.source.timer.TimerEventSource;
 import io.javaoperatorsdk.operator.processing.retry.GradualRetry;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
 import net.pincette.mongo.BsonUtil;
@@ -66,7 +67,6 @@ import net.pincette.mongo.collections.MongoCollectionSpec.TimeSeries;
 import net.pincette.operator.util.Status;
 import net.pincette.operator.util.Status.Condition;
 import net.pincette.util.ImmutableBuilder;
-import net.pincette.util.Pair;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -77,12 +77,15 @@ public class MongoCollectionReconciler
   private static final ClusteredIndexOptions CLUSTERED_INDEX_OPTIONS =
       new ClusteredIndexOptions(eq("_id", 1), true);
   private static final String CLUSTERED_NAME = "_id_";
+  private static final String CONFIG_DATABASE = "database";
+  private static final String CONFIG_URI = "uri";
   private static final String DIRECTION = "direction";
   private static final String FIELD = "field";
   private static final String KEY = "key";
-  private static final Logger LOGGER = getLogger("net.pincette.mongo.collections");
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
+  private final Config config = defaultOverrides().withFallback(loadDefault());
+  private final MongoClient mongoClient = mongoClient(config);
   private final TimerEventSource<MongoCollection> timerEventSource = new TimerEventSource<>();
 
   private static Collation collationOptions(final MongoCollectionSpec.Collation collation) {
@@ -182,12 +185,6 @@ public class MongoCollectionReconciler
         .orElse(null);
   }
 
-  private static Pair<String, String> getConfig() {
-    final Config config = defaultOverrides().withFallback(loadDefault());
-
-    return pair(config.getString("uri"), config.getString("database"));
-  }
-
   private static IndexOptions indexOptions(final Options index) {
     return ImmutableBuilder.create(IndexOptions::new)
         .updateIf(o -> index.bits != -1, o -> o.bits(index.bits))
@@ -237,6 +234,16 @@ public class MongoCollectionReconciler
 
   static String locale(final MongoCollectionSpec spec) {
     return ofNullable(spec.collation).map(c -> c.locale).orElse(null);
+  }
+
+  private static MongoClient mongoClient(final Config config) {
+    LOGGER.info(() -> "Connecting to " + stripUser(config.getString(CONFIG_URI)));
+
+    final MongoClient client = MongoClients.create(config.getString(CONFIG_URI));
+
+    LOGGER.info("Connected");
+
+    return client;
   }
 
   private static String name(final MongoCollection resource) {
@@ -300,6 +307,24 @@ public class MongoCollectionReconciler
     return ofNullable(resource.getStatus()).orElseGet(Status::new);
   }
 
+  private static String stripUser(final String uri) {
+    return tryToGetRethrow(() -> new URI(uri))
+        .flatMap(
+            u ->
+                tryToGetRethrow(
+                    () ->
+                        new URI(
+                            u.getScheme(),
+                            null,
+                            u.getHost(),
+                            u.getPort(),
+                            u.getPath(),
+                            u.getQuery(),
+                            u.getFragment())))
+        .map(URI::toString)
+        .orElse(uri);
+  }
+
   private static TimeSeriesOptions timeSeriesOptions(final TimeSeries timeSeries) {
     return ImmutableBuilder.create(() -> new TimeSeriesOptions(timeSeries.timeField))
         .updateIf(
@@ -342,12 +367,12 @@ public class MongoCollectionReconciler
 
   public UpdateControl<MongoCollection> reconcile(
       final MongoCollection resource, final Context<MongoCollection> context) {
-    final Pair<String, String> config = getConfig();
-
-    return tryToGetWith(
-            () -> MongoClients.create(config.first),
-            mongoClient -> {
-              reconcile(name(resource), resource.getSpec(), mongoClient.getDatabase(config.second));
+    return tryToGet(
+            () -> {
+              reconcile(
+                  name(resource),
+                  resource.getSpec(),
+                  mongoClient.getDatabase(config.getString(CONFIG_DATABASE)));
               timerEventSource.scheduleOnce(resource, 60000);
               resource.setStatus(status(resource).withCondition(new Condition()));
 
