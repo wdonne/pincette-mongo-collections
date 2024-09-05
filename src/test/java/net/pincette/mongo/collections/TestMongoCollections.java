@@ -4,7 +4,6 @@ import static com.mongodb.client.model.Filters.eq;
 import static io.fabric8.kubernetes.client.Config.autoConfigure;
 import static java.time.Duration.ofSeconds;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static java.util.stream.Collectors.toList;
 import static net.pincette.jes.util.Configuration.loadDefault;
 import static net.pincette.mongo.collections.MongoCollectionReconciler.exists;
 import static net.pincette.mongo.collections.MongoCollectionReconciler.indexes;
@@ -65,7 +64,7 @@ class TestMongoCollections {
             .map(d -> d.get("test"))
             .map(Object::toString)
             .sorted()
-            .collect(toList()));
+            .toList());
   }
 
   private static void create(final int strength) {
@@ -160,7 +159,7 @@ class TestMongoCollections {
 
               return key;
             })
-        .collect(toList());
+        .toList();
   }
 
   private static void loadCustomResource() {
