@@ -34,8 +34,7 @@ spec:
 The `spec` field has no mandatory fields.
 
 The collection properties are described at [https://www.mongodb.com/docs/v6.
-0/reference/method/db.createCollection/](https://www.mongodb.com/docs/v6.0/reference/method/db.
-createCollection/). The unsupported properties are `indexOptionDefaults`, `pipeline`, 
+0/reference/method/db.createCollection/](https://www.mongodb.com/docs/v6.0/reference/method/db.createCollection/). The unsupported properties are `indexOptionDefaults`, `pipeline`, 
 `storageEngine`, `viewOn` and `writeConcern`. The property `clusteredIndex` was changed to the 
 boolean property `clustered`.
 
