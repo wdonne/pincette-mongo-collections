@@ -33,7 +33,11 @@ spec:
 
 The `spec` field has no mandatory fields.
 
-The collection properties are described at [https://www.mongodb.com/docs/v6.0/reference/method/db.createCollection/](https://www.mongodb.com/docs/v6.0/reference/method/db.createCollection/). The unspoorted properties are `indexOptionDefaults`, `pipeline`, `storageEngine`, `viewOn` and `writeConcern`. The property `clusteredIndex` was change to the boolean property `clustered`.
+The collection properties are described at [https://www.mongodb.com/docs/v6.
+0/reference/method/db.createCollection/](https://www.mongodb.com/docs/v6.0/reference/method/db.
+createCollection/). The unsupported properties are `indexOptionDefaults`, `pipeline`, 
+`storageEngine`, `viewOn` and `writeConcern`. The property `clusteredIndex` was changed to the 
+boolean property `clustered`.
 
 The collation properties are described at [https://www.mongodb.com/docs/v6.0/reference/collation/#std-label-collation](https://www.mongodb.com/docs/v6.0/reference/collation/#std-label-collation). All properties are supported.
 
