@@ -24,8 +24,8 @@ spec:
         name: myindex1
         expireAfterSeconds: 20
     - keys:
-        -field: field3
-         direction: 1
+        - field: field3
+          direction: 1
       options:        
         sparse: true
         unique: true      
