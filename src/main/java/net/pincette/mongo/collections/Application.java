@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 
 public class Application {
   static final Logger LOGGER = getLogger("net.pincette.mongo.collections");
-  private static final String VERSION = "1.1.1";
+  private static final String VERSION = "1.1.2";
 
   public static void main(final String[] args) {
     final Operator operator = new Operator();
